@@ -54,7 +54,7 @@ var scp = {
       var title = $('#page-title').contents().first().text().trim();
       var rating = $('#prw54355').contents().first().text().trim();
       if (title.includes('\n')) { title = title.split('\n').join().trim(); }
-	    $('.footer-wikiwalk-nav, .earthworm').remove()
+	    $('.scp-image-block, .footer-wikiwalk-nav, .earthworm').remove()
       var extract = "項目編號", pno;
         while (startWith(extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录"])||!extract.trim()) {
           pno = Math.floor(Math.random()*($('#page-content p').length))
