@@ -1,0 +1,7 @@
+node_modules/
+data/
+/CoolQ*/
+config.json
+heroku.yml
+Dockerfile
+docker-compose.yml
