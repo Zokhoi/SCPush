@@ -1,3 +1,3 @@
 :a
-nodemon index.js
+node index.js
 goto a

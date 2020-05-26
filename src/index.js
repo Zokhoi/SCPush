@@ -65,20 +65,22 @@ var scp = {
     return msgtxt;
   },
   sendRec: async function() {
-    var d = new Date();
-    var day = Math.floor(d.getTime()/86400000);
-    var hr = (d.getUTCHours()+8)%24;
-    if (hr<1||hr>=9) {
-      var msg;
-      if (day%2) {
-        if (hr%2&&scp.orig.scp.length) { msg = await scp.getRecTxt(scp.orig.scp.shift()); }
-        else if (scp.orig.tale.length) { msg = await scp.getRecTxt(scp.orig.tale.shift()); }
-      } else {
-        if (hr%2&&scp.tran.scp.length) { msg = await scp.getRecTxt(scp.tran.scp.shift()); }
-        else if (scp.tran.tale.length) { msg = await scp.getRecTxt(scp.tran.tale.shift()); }
+    try {
+      var d = new Date();
+      var day = Math.floor(d.getTime()/86400000);
+      var hr = (d.getUTCHours()+8)%24;
+      if (hr<1||hr>=9) {
+        var msg;
+        if (day%2) {
+          if (hr%2&&scp.orig.scp.length) { msg = await scp.getRecTxt(scp.orig.scp.shift()); }
+          else if (scp.orig.tale.length) { msg = await scp.getRecTxt(scp.orig.tale.shift()); }
+        } else {
+          if (hr%2&&scp.tran.scp.length) { msg = await scp.getRecTxt(scp.tran.scp.shift()); }
+          else if (scp.tran.tale.length) { msg = await scp.getRecTxt(scp.tran.tale.shift()); }
+        }
+        for (gp of config.MSG_GP) { cq("send_group_msg", {group_id:gp, message:msg}) }
       }
-      for (gp of config.MSG_GP) { cq("send_group_msg", {group_id:gp, message:msg}) }
-    }
+    } catch (e) { console.log(e) }
   },
   orig: { scp:[], tale: [] },
   tran: { scp:[], tale: [] }
@@ -138,14 +140,14 @@ cq.on("message", msg => {
   }*/
   if (msg.message[0].type!="text"||!msg.message[0].data.text.toLowerCase().startsWith(pref)) return;
   if (config.MSG_GP.includes(msg.group_id.toString(10))) {
-    var args = msg.message[0].data.text.toLowerCase().split(" ");
-    var cmd = args.unshift().slice(pref.length);
-    var cmdfile = cq.__cmd.get(cmd);
+    let args = msg.message[0].data.text.toLowerCase().split(" ");
+    let cmd = args.unshift().slice(pref.length);
+    let cmdfile = cq.__cmd.get(cmd);
     if (cmdfile!==undefined) { return cmdfile.run(cq, msg, args); }
   } else if (msg.message_type === "private" && msg.user_id === "2502425837") {
-    var args = msg.message[0].data.text.toLowerCase().split(" ");
-    var cmd = args.unshift().slice(pref.length);
-    var cmdfile = cq.__pmcmd.get(cmd);
+    let args = msg.message[0].data.text.toLowerCase().split(" ");
+    let cmd = args.unshift().slice(pref.length);
+    let cmdfile = cq.__pmcmd.get(cmd);
     if (cmdfile!==undefined) { return cmdfile.run(cq, msg, args); }
   }
 });
