@@ -9,9 +9,13 @@ var cq = new CQHTTP(config.cq.httpapi);
 console.log(`CoolQ bot posting to ${config.cq.httpapi.apiRoot}, listening on ${config.cq.listen.host}:${config.cq.listen.port}`);
 cq.__config = config;
 
-function startWith(str, arr) {
-  for (let start of arr) { if (str.startsWith(start)) return true; }
-  return false;
+function applyCheck(method, str, arr) {
+  if (typeof str[method] === "function") {
+    for (let val of arr) { if (str[method](val)) return true; }
+    return false;
+  } else {
+    throw new Error("Applied check must be a method of String.")
+  }
 }
 
 var scp = {
@@ -56,7 +60,9 @@ var scp = {
       if (title.includes('\n')) { title = title.split('\n').join().trim(); }
 	    $('.scp-image-block, .footer-wikiwalk-nav, .earthworm').remove()
       var extract = "項目編號", pno;
-        while (startWith(extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录"])||!extract.trim()) {
+        while (applyCheck("startsWith", extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录"]) ||
+        applyCheck("includes", extract, ["紀錄開始","記錄開始","纪录开始","记录开始","紀錄結束","記錄結束","纪录结束","记录结束"]) ||
+        !extract.trim()) {
           pno = Math.floor(Math.random()*($('#page-content p').length))
           extract = $($('#page-content p').get(pno)).text();
         }
@@ -78,7 +84,7 @@ var scp = {
           if (hr%2&&scp.tran.scp.length) { msg = await scp.getRecTxt(scp.tran.scp.shift()); }
           else if (scp.tran.tale.length) { msg = await scp.getRecTxt(scp.tran.tale.shift()); }
         }
-        for (gp of config.MSG_GP) { cq("send_group_msg", {group_id:gp, message:msg}) }
+        for (gp of config.MSG_GP) { cq("send_group_msg", {group_id:gp, message:msg}).catch(e=>console.log(e)) }
       }
     } catch (e) { console.log(e) }
   },
