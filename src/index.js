@@ -9,6 +9,10 @@ var cq = new CQHTTP(config.cq.httpapi);
 console.log(`CoolQ bot posting to ${config.cq.httpapi.apiRoot}, listening on ${config.cq.listen.host}:${config.cq.listen.port}`);
 cq.__config = config;
 
+const Discord = require('discord.js');
+var dc = new Discord.Client();
+dc.login(config.DC_TOKEN);
+
 function applyCheck(method, str, arr) {
   if (typeof str[method] === "function") {
     for (let val of arr) { if (str[method](val)) return true; }
@@ -85,6 +89,8 @@ var scp = {
           else if (scp.tran.tale.length) { msg = await scp.getRecTxt(scp.tran.tale.shift()); }
         }
         for (gp of config.MSG_GP) { cq("send_group_msg", {group_id:gp, message:msg}).catch(e=>console.log(e)) }
+        let chan = await dc.channels.fetch(config.DC_CHAN)
+        chan.send(msg)
       }
     } catch (e) { console.log(e) }
   },

@@ -13,6 +13,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "cqhttp": "^1.2.0",
-    "got": "^11.0.3"
+    "discord.js": "^12.2.0",
+    "got": "^11.5.1"
   }
 }
