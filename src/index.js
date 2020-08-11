@@ -62,7 +62,7 @@ var scp = {
       var title = $('#page-title').contents().first().text().trim();
       var rating = $('#prw54355').contents().first().text().trim();
       if (title.includes('\n')) { title = title.split('\n').join().trim(); }
-	    $('.scp-image-block, .footer-wikiwalk-nav, .earthworm, #u-credit-view').remove()
+	    $('.scp-image-block, .footer-wikiwalk-nav, .earthworm, #u-credit-view, .info-container').remove()
       var extract = "項目編號", pno;
         while (applyCheck("startsWith", extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录"]) ||
         applyCheck("includes", extract, ["紀錄開始","記錄開始","纪录开始","记录开始","紀錄結束","記錄結束","纪录结束","记录结束"]) ||
