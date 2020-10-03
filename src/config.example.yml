@@ -16,8 +16,6 @@ bot:
   options:
     CMD_PREFIX: "-/"
     MSG_GP: "[]"
-    DC_TOKEN: ""
-    DC_CHAN: ""
 
   logging:
     level: "info"

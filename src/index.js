@@ -54,7 +54,4 @@ var scp = require('./lib/scpush.js');
 var qq = new QQ(config.bot);
 qq.start();
 
-const Discord = require('discord.js');
-var dc = new Discord.Client();
-dc.on('ready', ()=>{ winston.info('DCBot is ready.'); scp.start(config.bot.options, dc, qq._client); })
-dc.login(config.bot.options.DC_TOKEN);
+scp.start(config.bot.options, qq._client);

@@ -50,7 +50,7 @@ var scp = {
     else {
       var title = $('#page-title').contents().first().text().trim();
       var rating = $('#prw54355').contents().first().text().trim();
-      if (title.includes('\n')) { title = title.split('\n').join().trim(); }
+      if (title.includes('\n')) { title = title.replace('\n', '').trim(); }
 	    $('.scp-image-block, .footer-wikiwalk-nav, .earthworm, #u-credit-view, .info-container').remove()
       var extract = "項目編號", pno;
         while (applyCheck("startsWith", extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录"]) ||
@@ -63,7 +63,7 @@ var scp = {
     }
     return msgtxt;
   },
-  sendRec: async function(config, dc, qq) {
+  sendRec: async function(config, qq) {
     try {
       var d = new Date();
       var day = Math.floor(d.getTime()/86400000);
@@ -78,23 +78,23 @@ var scp = {
           else if (scp.tran.tale.length) { msg = await scp.getRecTxt(scp.tran.tale.shift()); }
         }
         for (gp of config.MSG_GP) { qq.sendGroupMsg(gp, msg).catch(e=>winston.error(e)) }
-        let chan = await dc.channels.fetch(config.DC_CHAN)
-        chan.send(msg)
       }
     } catch (e) { winston.error(e) }
   },
   orig: { scp:[], tale: [] },
   tran: { scp:[], tale: [] },
-  start: (config, dc, qq)=>{
+  start: (config, qq)=>{
+    config.MSG_GP = JSON.parse(config.MSG_GP);
+    
     scp.getRandList("scp", "orig");
     scp.getRandList("tale", "orig");
     scp.getRandList("scp", "tran");
     scp.getRandList("tale", "tran");
 
-    setTimeout(scp.sendRec,10000, config, dc, qq);
+    setTimeout(scp.sendRec,10000, config, qq);
 
     scp.id = {
-      rec: setInterval(scp.sendRec, 3600000, config, dc, qq),
+      rec: setInterval(scp.sendRec, 3600000, config, qq),
       origscp: setInterval(scp.getRandList, 300000, "scp", "orig"),
       origtale: setInterval(scp.getRandList, 300000, "tale", "orig"),
       transcp: setInterval(scp.getRandList, 300000, "scp", "tran"),
