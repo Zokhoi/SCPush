@@ -13,7 +13,7 @@ class QQ {
       platform: botConfig.platform || 2,
       log_level: botConfig.logLevel || 'off',
       kickoff: botConfig.kickoff || false,
-      ignore_self: botConfig.ignoreSelf || true,
+      ignore_self: botConfig.ignoreSelf,
       device_path: botConfig.devicePath || './data/'
     });
 
@@ -108,9 +108,9 @@ class QQ {
             }
           }
           if (reply.length) {
-            this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"))
+            await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"))
           } else {
-            this._client.sendPrivateMsg(msg.sender.user_id, "無結果。")
+            await this._client.sendPrivateMsg(msg.sender.user_id, "無結果。")
           }
         } else if (/\&.+\&/gi.test(rawText)) {
           let query = [...rawText.matchAll(/\&(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\&/gi)];
@@ -134,9 +134,9 @@ class QQ {
             }
           }
           if (reply.length) {
-            this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"))
+            await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"))
           } else {
-            this._client.sendPrivateMsg(msg.sender.user_id, "無結果。")
+            await this._client.sendPrivateMsg(msg.sender.user_id, "無結果。")
           }
         }
       } catch (e) {
