@@ -39,8 +39,8 @@ var scp = {
             //console.log(scp[status][type])
           }
         }
-      }).catch(e=>winston.error(e))
-    }).catch(e=>winston.error(e))
+      }).catch(e=>winston.error(e.stack))
+    }).catch(e=>winston.error(e.stack))
   },
   getRecTxt: async function(page) {
     var msgtxt = null;
@@ -77,29 +77,31 @@ var scp = {
           if (hr%2&&scp.tran.scp.length) { msg = await scp.getRecTxt(scp.tran.scp.shift()); }
           else if (scp.tran.tale.length) { msg = await scp.getRecTxt(scp.tran.tale.shift()); }
         }
-        for (gp of config.MSG_GP) { qq.sendGroupMsg(gp, msg).catch(e=>winston.error(e)) }
+        for (gp of config.serveGroup) { qq.sendGroupMsg(gp, msg).catch(e=>winston.error(e.stack)) }
       }
-    } catch (e) { winston.error(e) }
+    } catch (e) { winston.error(e.stack) }
   },
   orig: { scp:[], tale: [] },
   tran: { scp:[], tale: [] },
   start: (config, qq)=>{
-    config.MSG_GP = JSON.parse(config.MSG_GP);
-    
-    scp.getRandList("scp", "orig");
-    scp.getRandList("tale", "orig");
-    scp.getRandList("scp", "tran");
-    scp.getRandList("tale", "tran");
+    config.serveGroup = JSON.parse(config.serveGroup);
 
-    setTimeout(scp.sendRec,10000, config, qq);
+    if (config.serveGroup && config.serveGroup.length) {
+      scp.getRandList("scp", "orig");
+      scp.getRandList("tale", "orig");
+      scp.getRandList("scp", "tran");
+      scp.getRandList("tale", "tran");
 
-    scp.id = {
-      rec: setInterval(scp.sendRec, 3600000, config, qq),
-      origscp: setInterval(scp.getRandList, 300000, "scp", "orig"),
-      origtale: setInterval(scp.getRandList, 300000, "tale", "orig"),
-      transcp: setInterval(scp.getRandList, 300000, "scp", "tran"),
-      trantale: setInterval(scp.getRandList, 300000, "tale", "tran"),
-    };
+      setTimeout(scp.sendRec,10000, config, qq);
+
+      scp.id = {
+        rec: setInterval(scp.sendRec, 3600000, config, qq),
+        origscp: setInterval(scp.getRandList, 300000, "scp", "orig"),
+        origtale: setInterval(scp.getRandList, 300000, "tale", "orig"),
+        transcp: setInterval(scp.getRandList, 300000, "scp", "tran"),
+        trantale: setInterval(scp.getRandList, 300000, "tale", "tran"),
+      };
+    }
   }
 };
 

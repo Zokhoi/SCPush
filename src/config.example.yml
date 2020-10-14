@@ -11,11 +11,12 @@ bot:
     devicePath: "./data/"                   # 设备文件保存路径，默认为启动文件同目录下的data文件夹
 
   Crom:
-    scpSite: "cn"
+    scpSite: "cn"                           # Crom 默認使用 SCP 分部代號
+    serveGroup: "[]"                        # 如要開啟則填入所需群號，關閉則使用 false
+    servePrivate: true                      # 如要開啟則使用 true，關閉則使用 false
 
-  options:
-    CMD_PREFIX: "-/"
-    MSG_GP: "[]"
+  SCPush:
+    serveGroup: "[]"                        # 如要開啟則填入所需群號，關閉則使用 false
 
   logging:
-    level: "info"
+    level: "info"                           # 機器人日誌級別

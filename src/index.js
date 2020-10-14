@@ -54,4 +54,4 @@ var scp = require('./lib/scpush.js');
 var qq = new QQ(config.bot);
 qq.start();
 
-scp.start(config.bot.options, qq._client);
+scp.start(config.bot.SCPush, qq._client);
