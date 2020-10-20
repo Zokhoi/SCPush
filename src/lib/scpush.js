@@ -84,7 +84,9 @@ var scp = {
   orig: { scp:[], tale: [] },
   tran: { scp:[], tale: [] },
   start: (config, qq)=>{
-    config.serveGroup = JSON.parse(config.serveGroup);
+    if (typeof config.serveGroup=="string") {
+      config.serveGroup = JSON.parse(config.serveGroup);
+    }
 
     if (config.serveGroup && config.serveGroup.length) {
       scp.getRandList("scp", "orig");

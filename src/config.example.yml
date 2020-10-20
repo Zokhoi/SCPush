@@ -12,11 +12,15 @@ bot:
 
   Crom:
     scpSite: "cn"                           # Crom 默認使用 SCP 分部代號
-    serveGroup: "[]"                        # 如要開啟則填入所需群號，關閉則使用 false
+    serveGroup:                             # 如要開啟則填入所需群號，關閉則使用 false
+      - 1234567890
+      - 9876543210
     servePrivate: true                      # 如要開啟則使用 true，關閉則使用 false
 
   SCPush:
-    serveGroup: "[]"                        # 如要開啟則填入所需群號，關閉則使用 false
+    serveGroup:                             # 如要開啟則填入所需群號，關閉則使用 false
+      - 1234567890
+      - 9876543210
 
   logging:
     level: "info"                           # 機器人日誌級別

@@ -20,7 +20,9 @@ class QQ {
     this._client = client;
     this._passwordMd5 = botConfig.passwordMd5;
     this._cromConfig = config.Crom;
-    this._cromConfig.serveGroup = JSON.parse(this._cromConfig.serveGroup);
+    if (typeof this._cromConfig.serveGroup=="string") {
+      this._cromConfig.serveGroup = JSON.parse(this._cromConfig.serveGroup);
+    }
     this._crom = new Crom();
 
     client.on('system.login', (info)=>{
@@ -151,7 +153,7 @@ class QQ {
     this._client.on("message.group", async msg => {
       try {
         if (!this._cromConfig.serveGroup.includes(msg.group_id)) return;
-        reply = await this.getCrom(msg);
+        let reply = await this.getCrom(msg);
         if (reply===false) return;
         if (reply.length) {
           await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
