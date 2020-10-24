@@ -86,7 +86,6 @@ class QQ {
     if (/\[{3}.+\]{3}/gi.test(rawText)||/\{.+\}/gi.test(rawText)) {
       let rel = [...rawText.matchAll(/\[{3}((?<site>[a-zA-Z]{2,3})\|)?(?<queri>[-\w\:]{1,60})\]{3}/gi)];
       let query = [...rawText.matchAll(/\{(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\}/gi)];
-      let reply = [];
       for (var i = 0; i < rel.length; i++) {
         let {queri, site} = rel[i].groups;
         site = site ? site.toLowerCase() : undefined;
