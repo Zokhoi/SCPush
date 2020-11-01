@@ -62,9 +62,60 @@ const branch = {
   "int": "http://scp-int.wikidot.com"
 };
 
+
+class Entry {
+  constructor (key, value, now, maxAge) {
+    this.key = key
+    this.value = value
+    this.now = now
+    this.maxAge = maxAge || 0
+  }
+};
+
+class SlowModeCache extends Map {
+  constructor(options={max:500,maxAge:60000}) {
+    super();
+    if (options instanceof Number) {
+      this._max = options;
+    }
+    if (options.max) {
+      this._max = options.max;
+    }
+    if (options.maxAge) {
+      this._maxAge = options.maxAge;
+    }
+  }
+
+  set(key, value, maxAge = this._maxAge) {
+    let now;
+    if (this.has(key)) {
+      let temp = this.get(key);
+      now = temp.now
+    } else {
+      now = Date.now()
+    }
+    return super.set(key, new Entry(key, value, now, maxAge));
+  }
+
+  has (key) {
+    return Boolean(this.get(key));
+  }
+
+  get (key) {
+    let temp = super.get(key);
+    if (temp) {
+      if (temp.now+temp.maxAge<=Date.now()) {
+        this.delete(key);
+        return undefined;
+      } else return temp.value;
+    } else return undefined;
+  }
+}
+
 module.exports = {
   isFileExists: isFileExists,
   loadConfig: loadConfig,
   checkDeprecatedConfig: checkDeprecatedConfig,
-  branch: branch
+  branch: branch,
+  SlowModeCache: SlowModeCache,
 }

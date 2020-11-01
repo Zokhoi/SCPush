@@ -12,10 +12,13 @@ bot:
 
   Crom:
     scpSite: "cn"                           # Crom 默認使用 SCP 分部代號
-    serveGroup:                             # 如要開啟則填入所需群號，關閉則使用 false
+    serveGroup:                             # 如要開啟則填入所需群號，所有群開啟則使用true，
+                                            # 關閉則使用 false
       - 1234567890
       - 9876543210
     servePrivate: true                      # 如要開啟則使用 true，關閉則使用 false
+    slowMode: false                         # 如要開啟則刪去 false，以及下一行去掉註釋
+      # count: 5                            # 每分鐘最多多少條回應
 
   SCPush:
     serveGroup:                             # 如要開啟則填入所需群號，關閉則使用 false

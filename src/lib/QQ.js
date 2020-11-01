@@ -4,7 +4,8 @@ const winston = require('winston');
 const asciify = require('asciify-image');
 const readline = require('readline');
 const Crom = require('./crom.js');
-const {branch} = require('./util.js');
+const {branch, SlowModeCache:SMC} = require('./util.js');
+const LRU = require('lru-cache');
 
 class QQ {
   constructor(config = {}) {
@@ -17,6 +18,13 @@ class QQ {
       device_path: botConfig.devicePath || './data/'
     });
 
+    this.qqid = botConfig.qq;
+    this.platform = botConfig.platform || 2;
+    this.logLevel = botConfig.logLevel || 'off';
+    this.kickoff = botConfig.kickoff || false;
+    this.ignoreSelf = botConfig.ignoreSelf;
+    this.devicePath = botConfig.devicePath || './data/';
+
     this._client = client;
     this._passwordMd5 = botConfig.passwordMd5;
     this._cromConfig = config.Crom;
@@ -24,6 +32,15 @@ class QQ {
       this._cromConfig.serveGroup = JSON.parse(this._cromConfig.serveGroup);
     }
     this._crom = new Crom();
+
+    this._antiSpam = new LRU({
+      max: 500,
+      maxAge: 5000,
+    });
+    this._slowMo = new SMC({
+      max: 500,
+      maxAge: 60000,
+    });
 
     client.on('system.login', (info)=>{
       switch (info.sub_type) {
@@ -65,7 +82,7 @@ class QQ {
         case 'kickoff':
           winston.info('QQBot offline as account was logged in elsewhere.');
           break;
-        case 'unknown':
+          case 'unknown':
           winston.error('QQBot offline due to unknown error.');
           break;
       }
@@ -78,14 +95,10 @@ class QQ {
 
   async getCrom(msg) {
     let config = this._cromConfig;
-    let rawText = '';
     let reply = [];
-    msg.message.map(part=>{
-      rawText += part.type=='text' ? part.data.text : '';
-    });
-    if (/\[{3}.+\]{3}/gi.test(rawText)||/\{.+\}/gi.test(rawText)) {
-      let rel = [...rawText.matchAll(/\[{3}((?<site>[a-zA-Z]{2,3})\|)?(?<queri>[-\w\:]{1,60})\]{3}/gi)];
-      let query = [...rawText.matchAll(/\{(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\}/gi)];
+    if (/\[{3}.+\]{3}/gi.test(msg)||/\{.+\}/gi.test(msg)) {
+      let rel = [...msg.matchAll(/\[{3}((?<site>[a-zA-Z]{2,3})\|)?(?<queri>[-\w\:]{1,60})\]{3}/gi)];
+      let query = [...msg.matchAll(/\{(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\}/gi)];
       for (var i = 0; i < rel.length; i++) {
         let {queri, site} = rel[i].groups;
         site = site ? site.toLowerCase() : undefined;
@@ -108,8 +121,8 @@ class QQ {
           reply.push(ans)
         }
       }
-    } else if (/\&.+\&/gi.test(rawText)) {
-      let query = [...rawText.matchAll(/\&(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\&/gi)];
+    } else if (/\&.+\&/gi.test(msg)) {
+      let query = [...msg.matchAll(/\&(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\&/gi)];
       for (var i = 0; i < query.length; i++) {
         let {queri, site} = query[i].groups;
         site = site ? site.toLowerCase() : undefined;
@@ -135,10 +148,22 @@ class QQ {
   cromPrivate() {
     this._client.on("message.private", async msg => {
       try {
-        let reply = await this.getCrom(msg);
+        let rawText = '';
+        msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
+        if (this._antiSpam.peek(`${msg.sender.user_id}: ${rawText}`)) return;
+        let reply = await this.getCrom(rawText);
         if (reply===false) return;
         if (reply.length) {
-          await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+          // 過濾ignoreSelf為false下文章標題或其他東西誤觸發無限循環
+          if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
+            let id = `${msg.sender.user_id}: ${reply.join("\n\n")}`;
+            if (this._antiSpam.peek(id)) {
+              this._antiSpam.set(id, 1);
+              await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+            }
+          } else {
+            await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+          }
         } else {
           await this._client.sendPrivateMsg(msg.sender.user_id, "無結果。");
         }
@@ -152,10 +177,32 @@ class QQ {
     this._client.on("message.group", async msg => {
       try {
         if (!this._cromConfig.serveGroup.includes(msg.group_id)) return;
-        let reply = await this.getCrom(msg);
+        let rawText = '';
+        msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
+        if (this._antiSpam.peek(`${msg.group_id}: ${rawText}`)) return;
+        let reply = await this.getCrom(rawText);
         if (reply===false) return;
         if (reply.length) {
-          await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+          if (this._cromConfig.slowMode && this._cromConfig.slowMode.count) {
+            // 處理慢速模式
+            let id = `${msg.group_id}`;
+            let count = this._slowMo.get(id) || 0;
+            if (++count <= this._cromConfig.slowMode.count) {
+              this._slowMo.set(id, count);
+              await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+            } else {
+              await this._client.sendGroupMsg(msg.group_id, `已開啟慢速模式，一分鐘只能請求 ${this._cromConfig.slowMode.count} 次。`);
+            }
+          } else if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
+            // 過濾ignoreSelf為false下文章標題或其他東西誤觸發無限循環
+            let id = `${msg.group_id}: ${reply.join("\n\n")}`;
+            if (!this._antiSpam.peek(id)) {
+              this._antiSpam.set(id, 1);
+              await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+            }
+          } else {
+            await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+          }
         } else {
           await this._client.sendGroupMsg(msg.group_id, "無結果。");
         }
