@@ -11,26 +11,26 @@ function applyCheck(method, str, arr) {
   }
 }
 
-var scp = {
+let scp = {
   getRandList: function(type, status) {
     if ( type.toLowerCase()!="scp"&&type.toLowerCase()!="tale" ||
       status.toLowerCase()!="orig"&&status.toLowerCase()!="tran" ) return;
-    var base = `http://scp-wiki-cn.wikidot.com/random:random-${type.toLowerCase()}`;
+    let base = `http://scp-wiki-cn.wikidot.com/random:random-${type.toLowerCase()}`;
     if (status.toLowerCase()=="orig") { base+=`-cn`; var lb = 5, ub = 100; }
     else if (status.toLowerCase()=="tran") { var lb = 0, ub = 30; }
     got(base).then(res => {
-      var $ = cheerio.load(res.body);
-      var redSnip = 'http://snippets.wdfiles.com/local--code/code:iframe-redirect#';
-      var rand = $('.list-pages-item').children('p').children('iframe').filter(function(i, el) {
+      let $ = cheerio.load(res.body);
+      let redSnip = 'http://snippets.wdfiles.com/local--code/code:iframe-redirect#';
+      let rand = $('.list-pages-item').children('p').children('iframe').filter(function(i, el) {
         return $(this).attr('src').startsWith(redSnip);
       }).attr('src').slice(redSnip.length);
       if (!rand||rand==undefined||rand.startsWith('http://scp-wiki-cn.wikidot.com/old:')) return null;
 
       got(rand).then(res => {
-        var $ = cheerio.load(res.body);
+        let $ = cheerio.load(res.body);
         if (!$('#page-title').length) return null;
         else {
-          var rating = $('#prw54355').contents().first().text().trim();
+          let rating = $('#prw54355').contents().first().text().trim();
           if (!rating||rating==undefined) { rating="0" };
           rating = parseInt(rating);
           if (rating>=lb&&rating<=ub) {
@@ -43,17 +43,17 @@ var scp = {
     }).catch(e=>winston.error(e.stack))
   },
   getRecTxt: async function(page) {
-    var msgtxt = null;
-    var res = await got(page);
-    var $ = cheerio.load(res.body);
+    let msgtxt = null;
+    let res = await got(page);
+    let $ = cheerio.load(res.body);
     if (!$('#page-title').length) return null;
     else {
-      var title = $('#page-title').contents().first().text().trim();
-      var rating = $('#prw54355').contents().first().text().trim();
+      let title = $('#page-title').contents().first().text().trim();
+      let rating = $('#prw54355').contents().first().text().trim();
       if (title.includes('\n')) { title = title.replace('\n', '').trim(); }
 	    $('.scp-image-block, .footer-wikiwalk-nav, .earthworm, #u-credit-view, .info-container').remove()
-      var extract = "項目編號", pno;
-        while (applyCheck("startsWith", extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录"]) ||
+      let extract = "項目編號", pno;
+        while (applyCheck("startsWith", extract, ["項目編號","项目编号","威脅等級","威脅級别","威胁级别","威胁等级","附錄","附录", "«"]) ||
         applyCheck("includes", extract, ["紀錄開始","記錄開始","纪录开始","记录开始","紀錄結束","記錄結束","纪录结束","记录结束"]) ||
         !extract.trim()) {
           pno = Math.floor(Math.random()*($('#page-content p').length))
@@ -65,11 +65,11 @@ var scp = {
   },
   sendRec: async function(config, qq) {
     try {
-      var d = new Date();
-      var day = Math.floor(d.getTime()/86400000);
-      var hr = (d.getUTCHours()+8)%24;
+      let d = new Date();
+      let day = Math.floor(d.getTime()/86400000);
+      let hr = (d.getUTCHours()+8)%24;
       if (hr<1||hr>=9) {
-        var msg;
+        let msg;
         if (day%2) {
           if (hr%2&&scp.orig.scp.length) { msg = await scp.getRecTxt(scp.orig.scp.shift()); }
           else if (scp.orig.tale.length) { msg = await scp.getRecTxt(scp.orig.tale.shift()); }
