@@ -182,31 +182,36 @@ class QQ {
         if (this._antiSpam.peek(`${msg.group_id}: ${rawText}`)) return;
         let reply = await this.getCrom(rawText);
         if (reply===false) return;
+
+        let sendReply = async () => {
+          if (reply.length) {
+            if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
+              // 過濾ignoreSelf為false下文章標題或其他東西誤觸發無限循環
+              let id = `${msg.group_id}: ${reply.join("\n\n")}`;
+              if (!this._antiSpam.peek(id)) {
+                this._antiSpam.set(id, 1);
+                await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+              }
+            } else {
+              await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+            }
+          } else {
+            await this._client.sendGroupMsg(msg.group_id, "無結果。");
+          }
+        }
+
         if (this._cromConfig.slowMode && this._cromConfig.slowMode.count) {
           // 處理慢速模式
           let id = `${msg.group_id}`;
           let count = this._slowMo.get(id) || 0;
           if (++count <= this._cromConfig.slowMode.count) {
             this._slowMo.set(id, count);
-
-            if (reply.length) {
-              if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
-                // 過濾ignoreSelf為false下文章標題或其他東西誤觸發無限循環
-                let id = `${msg.group_id}: ${reply.join("\n\n")}`;
-                if (!this._antiSpam.peek(id)) {
-                  this._antiSpam.set(id, 1);
-                  await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
-                }
-              } else {
-                await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
-              }
-            } else {
-              await this._client.sendGroupMsg(msg.group_id, "無結果。");
-            }
-
+            await sendReply();
           } else {
             await this._client.sendGroupMsg(msg.group_id, `已開啟慢速模式，一分鐘只能請求 ${this._cromConfig.slowMode.count} 次。`);
           }
+        } else {
+          await sendReply();
         }
       } catch (e) {
         winston.error(e.stack)
