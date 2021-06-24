@@ -11,7 +11,7 @@ class QQ {
   constructor(config = {}) {
     let botConfig = config.QQ || {};
     let client = oicq.createClient(botConfig.qq, {
-      platform: botConfig.platform || 2,
+      platform: botConfig.platform || 5,
       log_level: botConfig.logLevel || 'off',
       kickoff: botConfig.kickoff || false,
       ignore_self: botConfig.ignoreSelf,
@@ -19,7 +19,7 @@ class QQ {
     });
 
     this.qqid = botConfig.qq;
-    this.platform = botConfig.platform || 2;
+    this.platform = botConfig.platform || 5;
     this.logLevel = botConfig.logLevel || 'off';
     this.kickoff = botConfig.kickoff || false;
     this.ignoreSelf = botConfig.ignoreSelf;
@@ -45,24 +45,33 @@ class QQ {
     client.on('system.login', (info)=>{
       switch (info.sub_type) {
         case 'captcha':
-          winston.info('QQBot CAPTCHA required.');
-          //fs.writeFileSync('./data/captcha.jpg', info.image)
-          asciify(info.image, { fit: 'box', width: '100%', }, function (err, asciified) {
-            if (err) throw err;
-            let stdin = readline.createInterface({ input: process.stdin });
-            console.log(asciified);
-            winston.info('Please enter CAPTCHA code: ')
-            stdin.on('line', (input)=>{
-                client.captchaLogin(input.trim())
-                stdin.close()
+            winston.info('QQBot CAPTCHA required.');
+            //fs.writeFileSync('./data/captcha.jpg', info.image)
+            asciify(info.image, { fit: 'box', width: '100%', }, function (err, asciified) {
+                if (err) throw err;
+                let cstdin = readline.createInterface({ input: process.stdin });
+                console.log(asciified);
+                winston.info('Please enter CAPTCHA code: ')
+                cstdin.on('line', (input)=>{
+                    client.captchaLogin(input.trim());
+                    cstdin.close();
+                })
+            });
+            break;
+        case 'slider':
+            winston.info(`QQBot slider required: ${info.url}`);
+            let sstdin = readline.createInterface({ input: process.stdin });
+            winston.info('Please enter slider ticket: ');
+            sstdin.on('line', (input)=>{
+                client.sliderLogin(input.trim());
+                sstdin.close();
             })
-          });
-          break;
+            break;
         case 'device':
           winston.info(`QQBot device lock unlocking required: ${info.url}`);
           break;
         case 'error':
-          winston.error(`QQBot Error: ${info.message}`);
+          winston.error(`QQBot Error ${info.code}: ${info.message}`);
           break;
       }
     });
@@ -75,16 +84,20 @@ class QQ {
       switch (info.sub_type) {
         case 'network':
           winston.info('QQBot offline as network has disconnected.');
-          break;
+          return;
         case 'frozen':
           winston.error('QQBot offline as account was frozen.');
-          break;
+          return;
         case 'kickoff':
           winston.info('QQBot offline as account was logged in elsewhere.');
-          break;
-          case 'unknown':
+          if (this._kickoff) { break; }
+          else return;
+        case 'device':
+          winston.error('QQBot offline as device lock needs authentication.');
+          return;
+        case 'unknown':
           winston.error('QQBot offline due to unknown error.');
-          break;
+          return;
       }
     });
 

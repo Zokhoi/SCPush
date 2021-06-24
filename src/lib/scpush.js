@@ -20,10 +20,12 @@ let scp = {
     else if (status.toLowerCase()=="tran") { var lb = 0, ub = 30; }
     got(base).then(res => {
       let $ = cheerio.load(res.body);
-      let redSnip = 'http://snippets.wdfiles.com/local--code/code:iframe-redirect#';
+      let redSnip = 'snippets.wdfiles.com/local--code/code:iframe-redirect#';
       let rand = $('.list-pages-item').children('p').children('iframe').filter(function(i, el) {
-        return $(this).attr('src').startsWith(redSnip);
-      }).attr('src').slice(redSnip.length);
+        return $(this).attr('src').includes(redSnip);
+      }).attr('src').split('//');
+      rand.shift();
+      rand = rand.join('//').slice(redSnip.length);
       if (!rand||rand==undefined||rand.startsWith('http://scp-wiki-cn.wikidot.com/old:')) return null;
 
       got(rand).then(res => {

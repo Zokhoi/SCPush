@@ -14,10 +14,12 @@ var getRandList = function (type, status) {
   request(base, (e,res,body) => {
     if (e) { console.log(e); return null; }
     var $ = cheerio.load(body);
-    var redSnip = 'http://snippets.wdfiles.com/local--code/code:iframe-redirect#';
+    var redSnip = 'snippets.wdfiles.com/local--code/code:iframe-redirect#';
     var rand = $('.list-pages-item').children('p').children('iframe').filter(function(i, el) {
-      return $(this).attr('src').startsWith(redSnip);
-    }).attr('src').slice(redSnip.length);
+      return $(this).attr('src').includes(redSnip);
+    }).attr('src').split('//');
+    rand.shift();
+    rand = rand.join('//').slice(redSnip.length);
     console.log(rand)
     if (!rand||rand==undefined) return null;
 
