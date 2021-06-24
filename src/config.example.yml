@@ -1,29 +1,36 @@
 bot:
   QQ:
+    disabled: false                         # 如果需要 QQ 机器人，请设置为 false
     qq: "0000000000"                        # 机器人的 QQ 号
 
     # 以下為[OICQ](https://github.com/takayama-lily/oicq)參數
     passwordMd5: ""                         # 使用MD5進行加密後的QQ密碼，並不儲存明文
-    platform: 2                             # 登陆类型 1手机 2平板
+    platform: 3                             # 登陆类型 1手机 2平板
     logLevel: "info"                        # 日志级别，有trace,debug,info,warn,error,fatal,off
     kickoff: false                          # 被挤下线是否在3秒后反挤对方
     ignoreSelf: true                        # 群聊是否无视自己的发言
     devicePath: "./data/"                   # 设备文件保存路径，默认为启动文件同目录下的data文件夹
-
+    
+  Discord:
+    disabled: false                           # 如果需要 Discord 机器人，请设置为 false
+    token: ""
+  
   Crom:
     scpSite: "cn"                           # Crom 默認使用 SCP 分部代號
-    serveGroup:                             # 如要開啟則填入所需群號，所有群開啟則使用true，
+    serveQGroup:                            # 如要開啟則填入所需QQ群號，所有群開啟則使用true，
                                             # 關閉則使用 false
       - 1234567890
       - 9876543210
-    servePrivate: true                      # 如要開啟則使用 true，關閉則使用 false
+    serveQPrivate: true                     # 如要開啟則使用 true，關閉則使用 false
     slowMode: false                         # 如要開啟則刪去 false，以及下一行去掉註釋
       # count: 5                            # 每分鐘最多多少條回應
 
   SCPush:
-    serveGroup:                             # 如要開啟則填入所需群號，關閉則使用 false
+    serveQGroup:                            # 如要開啟則填入所需QQ群號，關閉則使用 false
       - 1234567890
       - 9876543210
-
+    serveDChannel:                          # 如要開啟則填入所需 Discord channel id，關閉則使用 false
+      - "123456789098765432"
+    
   logging:
     level: "info"                           # 機器人日誌級別

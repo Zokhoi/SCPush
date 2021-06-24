@@ -3,7 +3,7 @@ const got = require('got');
 /**
  * Interacter with Crom wiki crawler api.
  */
-class Crom {
+class CromApi {
   constructor() {
     this.base = `https://api.crom.avn.sh/graphql`
   }
@@ -65,4 +65,4 @@ class Crom {
   }
 }
 
-module.exports = Crom;
+module.exports = CromApi;

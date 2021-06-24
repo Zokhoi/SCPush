@@ -1,17 +1,20 @@
 const oicq = require('oicq');
+const Discord = require('discord.js')
 const fs = require('fs');
 const winston = require('winston');
 const asciify = require('asciify-image');
 const readline = require('readline');
-const Crom = require('./crom.js');
+const CromApi = require('./crom.js');
 const {branch, SlowModeCache:SMC} = require('./util.js');
 const LRU = require('lru-cache');
 
 class QQ {
   constructor(config = {}) {
+    this._disabled = config.QQ.disabled;
+    if (this._disabled) return;
     let botConfig = config.QQ || {};
     let client = oicq.createClient(botConfig.qq, {
-      platform: botConfig.platform || 5,
+      platform: botConfig.platform || 3,
       log_level: botConfig.logLevel || 'off',
       kickoff: botConfig.kickoff || false,
       ignore_self: botConfig.ignoreSelf,
@@ -19,7 +22,7 @@ class QQ {
     });
 
     this.qqid = botConfig.qq;
-    this.platform = botConfig.platform || 5;
+    this.platform = botConfig.platform || 3;
     this.logLevel = botConfig.logLevel || 'off';
     this.kickoff = botConfig.kickoff || false;
     this.ignoreSelf = botConfig.ignoreSelf;
@@ -27,20 +30,8 @@ class QQ {
 
     this._client = client;
     this._passwordMd5 = botConfig.passwordMd5;
-    this._cromConfig = config.Crom;
-    if (typeof this._cromConfig.serveGroup=="string") {
-      this._cromConfig.serveGroup = JSON.parse(this._cromConfig.serveGroup);
-    }
-    this._crom = new Crom();
-
-    this._antiSpam = new LRU({
-      max: 500,
-      maxAge: 5000,
-    });
-    this._slowMo = new SMC({
-      max: 500,
-      maxAge: 60000,
-    });
+    
+    this._crom = new Crom(config, this._client);
 
     client.on('system.login', (info)=>{
       switch (info.sub_type) {
@@ -106,6 +97,65 @@ class QQ {
     });
   }
 
+  async start() {
+    if (!this._started && !this.disabled) {
+      this._started = true;
+      this._crom.start();
+      this._client.login(this._passwordMd5);
+    }
+  }
+
+  async stop() {
+    if (this._started && !this.disabled) {
+      this._started = false;
+      this._client.terminate();
+    }
+  }
+};
+
+class DC {
+  constructor(config = {}) {
+    this._disabled = config.Discord.disabled;
+    if (this._disabled) return;
+    this._token = config.Discord.token;
+    
+    this._client = new Discord.Client();
+  }
+
+  async start() {
+    if (!this._started && !this.disabled) {
+      this._started = true;
+      this._client.login(this._token);
+    }
+  }
+
+  async stop() {
+    if (this._started && !this.disabled) {
+      this._started = false;
+      this._client.destroy();
+    }
+  }
+}
+
+class Crom {
+  constructor(config, qq) {
+    this.qq = qq;
+    this._crom = new CromApi();
+    this._cromConfig = config.Crom;
+    if (typeof this._cromConfig.serveQGroup=="string") {
+      this._cromConfig.serveQGroup = JSON.parse(this._cromConfig.serveQGroup);
+    }
+
+    this._antiSpam = new LRU({
+      max: 500,
+      maxAge: 5000,
+    });
+    this._slowMo = new SMC({
+      max: 500,
+      maxAge: 60000,
+    });
+  }
+  
   async getCrom(msg) {
     let config = this._cromConfig;
     let reply = [];
@@ -158,8 +208,8 @@ class QQ {
     return reply;
   }
 
-  cromPrivate() {
-    this._client.on("message.private", async msg => {
+  cromQPrivate() {
+    this.qq.on("message.private", async msg => {
       try {
         let rawText = '';
         msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
@@ -172,13 +222,13 @@ class QQ {
             let id = `${msg.sender.user_id}: ${reply.join("\n\n")}`;
             if (this._antiSpam.peek(id)) {
               this._antiSpam.set(id, 1);
-              await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+              await this.qq.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
             }
           } else {
-            await this._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+            await this.qq.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
           }
         } else {
-          await this._client.sendPrivateMsg(msg.sender.user_id, "無結果。");
+          await this.qq.sendPrivateMsg(msg.sender.user_id, "無結果。");
         }
       } catch (e) {
         winston.error(e.stack)
@@ -186,7 +236,7 @@ class QQ {
     })
   }
 
-  cromGroup() {
+  cromQGroup() {
     let sendReply = async (msg, reply) => {
       if (reply.length) {
         if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
@@ -194,19 +244,19 @@ class QQ {
           let id = `${msg.group_id}: ${reply.join("\n\n")}`;
           if (!this._antiSpam.peek(id)) {
             this._antiSpam.set(id, 1);
-            await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+            await this.qq.sendGroupMsg(msg.group_id, reply.join("\n\n"));
           }
         } else {
-          await this._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+          await this.qq.sendGroupMsg(msg.group_id, reply.join("\n\n"));
         }
       } else {
-        await this._client.sendGroupMsg(msg.group_id, "無結果。");
+        await this.qq.sendGroupMsg(msg.group_id, "無結果。");
       }
     }
 
-    this._client.on("message.group", async msg => {
+    this.qq.on("message.group", async msg => {
       try {
-        if (!this._cromConfig.serveGroup instanceof Boolean && !this._cromConfig.serveGroup.includes(msg.group_id)) return;
+        if (!this._cromConfig.serveQGroup instanceof Boolean && !this._cromConfig.serveQGroup.includes(msg.group_id)) return;
         let rawText = '';
         msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
         if (this._antiSpam.peek(`${msg.group_id}: ${rawText}`)) return;
@@ -221,7 +271,7 @@ class QQ {
             this._slowMo.set(id, count);
             await sendReply(msg, reply);
           } else {
-            await this._client.sendGroupMsg(msg.group_id, `已開啟慢速模式，一分鐘只能請求 ${this._cromConfig.slowMode.count} 次。`);
+            await this.qq.sendGroupMsg(msg.group_id, `已開啟慢速模式，一分鐘只能請求 ${this._cromConfig.slowMode.count} 次。`);
           }
         } else {
           await sendReply(msg, reply);
@@ -232,25 +282,14 @@ class QQ {
     })
   }
 
-  crom() {
-    if (![undefined, false, []].includes(this._cromConfig.serveGroup)) this.cromGroup();
-    if (this._cromConfig.servePrivate) this.cromPrivate();
+  start() {
+    if (![undefined, false, []].includes(this._cromConfig.serveQGroup)) this.cromQGroup();
+    if (this._cromConfig.serveQPrivate) this.cromQPrivate();
   }
+}
 
-  async start() {
-    if (!this._started) {
-      this._started = true;
-      this.crom()
-      this._client.login(this._passwordMd5);
-    }
-  }
-
-  async stop() {
-    if (this._started) {
-      this._started = false;
-      this._client.terminate();
-    }
-  }
+module.exports = {
+  QQ,
+  DC,
+  Crom,
 };
-
-module.exports = QQ;

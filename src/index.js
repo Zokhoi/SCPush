@@ -3,7 +3,7 @@ const winston = require('winston');
 const { loadConfig, checkDeprecatedConfig } = require('./lib/util.js');
 const config = loadConfig('config');
 
-const QQ = require('./lib/QQ.js');
+const {QQ,DC} = require('./lib/bot.js');
 
 const logFormat = winston.format(info => {
     info.level = info.level.toUpperCase();
@@ -54,4 +54,7 @@ var scp = require('./lib/scpush.js');
 var qq = new QQ(config.bot);
 qq.start();
 
-scp.start(config.bot.SCPush, qq._client);
+var dc = new DC(config.bot);
+dc.start();
+
+scp.start(config.bot.SCPush, {qq:qq._client, dc:dc._client});
