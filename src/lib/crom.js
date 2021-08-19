@@ -38,7 +38,7 @@ class CromApi {
           }
         }
       }
-      `)
+    `)
   }
 
   async searchUsers(query, filter) {
@@ -61,7 +61,31 @@ class CromApi {
           }
         }
       }
-      `)
+    `)
+  }
+  
+  async searchUserByRank(rank, filter) {
+    if (!(typeof rank == 'number') || isNaN(rank)) { throw new Error('Rank has to be an integer.'); }
+    return await this.req(`
+      {
+        usersByRank(rank: ${rank}, filter: {
+          anyBaseUrl: ${ !!filter && !!filter.anyBaseUrl ? `"${filter.anyBaseUrl}"` : null }
+        }) {
+          name
+          authorInfos {
+            authorPage {
+              url
+            }
+          }
+          statistics${ !!filter && !!filter.baseUrl ? `(baseUrl: "${filter.baseUrl}")` : "" } {
+            rank
+            totalRating
+            meanRating
+            pageCount
+          }
+        }
+      }
+    `)
   }
 }
 

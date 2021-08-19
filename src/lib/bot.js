@@ -11,27 +11,30 @@ const LRU = require('lru-cache');
 class QQ {
   constructor(config = {}) {
     this._disabled = config.QQ.disabled;
-    if (this._disabled) return;
     let botConfig = config.QQ || {};
-    let client = oicq.createClient(botConfig.qq, {
-      platform: botConfig.platform || 3,
-      log_level: botConfig.logLevel || 'off',
-      kickoff: botConfig.kickoff || false,
-      ignore_self: botConfig.ignoreSelf,
-      device_path: botConfig.devicePath || './data/'
-    });
+    let client;
+    if (!this._disabled) {
+      client = oicq.createClient(botConfig.qq, {
+        platform: botConfig.platform || 3,
+        log_level: botConfig.logLevel || 'off',
+        kickoff: botConfig.kickoff || false,
+        ignore_self: true,
+        device_path: botConfig.devicePath || './data/'
+      });
+    }
+    
 
     this.qqid = botConfig.qq;
     this.platform = botConfig.platform || 3;
     this.logLevel = botConfig.logLevel || 'off';
     this.kickoff = botConfig.kickoff || false;
-    this.ignoreSelf = botConfig.ignoreSelf;
+    this.ignoreSelf = true;
     this.devicePath = botConfig.devicePath || './data/';
 
     this._client = client;
     this._passwordMd5 = botConfig.passwordMd5;
     
-    this._crom = new Crom(config, this._client);
+    this._crom = new Crom(config, this);
 
     client.on('system.login', (info)=>{
       switch (info.sub_type) {
@@ -98,7 +101,7 @@ class QQ {
   }
 
   async start() {
-    if (!this._started && !this.disabled) {
+    if (!this._started && !this._disabled) {
       this._started = true;
       this._crom.start();
       this._client.login(this._passwordMd5);
@@ -106,31 +109,34 @@ class QQ {
   }
 
   async stop() {
-    if (this._started && !this.disabled) {
+    if (this._started && !this._disabled) {
       this._started = false;
       this._client.terminate();
     }
+  }
+  
+  on(...props) {
+    return this._client.on(...props);
   }
 };
 
 class DC {
   constructor(config = {}) {
     this._disabled = config.Discord.disabled;
-    if (this._disabled) return;
     this._token = config.Discord.token;
     
-    this._client = new Discord.Client();
+    if (!this._disabled) this._client = new Discord.Client();
   }
 
   async start() {
-    if (!this._started && !this.disabled) {
+    if (!this._started && !this._disabled) {
       this._started = true;
       this._client.login(this._token);
     }
   }
 
   async stop() {
-    if (this._started && !this.disabled) {
+    if (this._started && !this._disabled) {
       this._started = false;
       this._client.destroy();
     }
@@ -194,8 +200,10 @@ class Crom {
           baseUrl: !!site&&!!branch[site] ? branch[site] : branch[config.scpSite]
         }
         if (site&&site==="all") { filter.anyBaseUrl=null; filter.baseUrl=null; };
-        let res = await this._crom.searchUsers(queri, filter);
-        res = res.data.searchUsers;
+        let res = /^\#\d+$/.test(queri) ?
+          (await this._crom.searchUserByRank(parseInt(queri.slice(1)),filter)) :
+          (await this._crom.searchUsers(queri, filter));
+        res = res.data[/^\#\d+$/.test(queri) ? 'usersByRank' : 'searchUsers'];
         if (res.length) {
           let ans = res[0].name;
           ans += `: ${!!site&&(site==="all"||!!branch[site]) ? site.toUpperCase() : config.scpSite.toUpperCase()} #${res[0].statistics.rank}`;
@@ -209,7 +217,7 @@ class Crom {
   }
 
   cromQPrivate() {
-    this.qq.on("message.private", async msg => {
+    this.qq._client.on("message.private", async msg => {
       try {
         let rawText = '';
         msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
@@ -218,17 +226,17 @@ class Crom {
         if (reply===false) return;
         if (reply.length) {
           // 過濾ignoreSelf為false下文章標題或其他東西誤觸發無限循環
-          if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
+          if (!this.qq.ignoreSelf && msg.sender.user_id == this.qq.qqid) {
             let id = `${msg.sender.user_id}: ${reply.join("\n\n")}`;
             if (this._antiSpam.peek(id)) {
               this._antiSpam.set(id, 1);
-              await this.qq.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+              await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
             }
           } else {
-            await this.qq.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+            await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
           }
         } else {
-          await this.qq.sendPrivateMsg(msg.sender.user_id, "無結果。");
+          await this.qq._client.sendPrivateMsg(msg.sender.user_id, "無結果。");
         }
       } catch (e) {
         winston.error(e.stack)
@@ -239,24 +247,25 @@ class Crom {
   cromQGroup() {
     let sendReply = async (msg, reply) => {
       if (reply.length) {
-        if (!this.ignoreSelf && msg.sender.user_id == this.qqid) {
+        if (!this.qq.ignoreSelf && msg.sender.user_id == this.qqid) {
           // 過濾ignoreSelf為false下文章標題或其他東西誤觸發無限循環
           let id = `${msg.group_id}: ${reply.join("\n\n")}`;
           if (!this._antiSpam.peek(id)) {
             this._antiSpam.set(id, 1);
-            await this.qq.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+            await this.qq._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
           }
         } else {
-          await this.qq.sendGroupMsg(msg.group_id, reply.join("\n\n"));
+          await this.qq._client.sendGroupMsg(msg.group_id, reply.join("\n\n"));
         }
       } else {
-        await this.qq.sendGroupMsg(msg.group_id, "無結果。");
+        await this.qq._client.sendGroupMsg(msg.group_id, "無結果。");
       }
     }
 
-    this.qq.on("message.group", async msg => {
+    this.qq._client.on("message.group", async msg => {
       try {
-        if (!this._cromConfig.serveQGroup instanceof Boolean && !this._cromConfig.serveQGroup.includes(msg.group_id)) return;
+        if (!this._cromConfig.serveQGroup.includes(msg.group_id)) return;
+        console.log(msg)
         let rawText = '';
         msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
         if (this._antiSpam.peek(`${msg.group_id}: ${rawText}`)) return;
@@ -271,7 +280,7 @@ class Crom {
             this._slowMo.set(id, count);
             await sendReply(msg, reply);
           } else {
-            await this.qq.sendGroupMsg(msg.group_id, `已開啟慢速模式，一分鐘只能請求 ${this._cromConfig.slowMode.count} 次。`);
+            await this.qq._client.sendGroupMsg(msg.group_id, `已開啟慢速模式，一分鐘只能請求 ${this._cromConfig.slowMode.count} 次。`);
           }
         } else {
           await sendReply(msg, reply);

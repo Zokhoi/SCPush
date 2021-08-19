@@ -57,4 +57,6 @@ qq.start();
 var dc = new DC(config.bot);
 dc.start();
 
-scp.start(config.bot.SCPush, {qq:qq._client, dc:dc._client});
+scp.start(config.bot.SCPush, {qq:qq, dc:dc});
+
+setTimeout(()=>process.exit(0), 86400000)
