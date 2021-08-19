@@ -300,7 +300,9 @@ class Crom {
 
     this.qq.on("message.group", async msg => {
       try {
-        if (!this._cromConfig.serveQGroup instanceof Boolean && !this._cromConfig.serveQGroup.includes(msg.group_id)) return;
+        if(!this._cromConfig.serveQGroup instanceof Boolean) return;
+        for(var i=0; i<this._cromConfig.serveQGroup.length; i+=1)
+          if(this._cromConfig.serveQGroup==msg.group_id) return;  
         let rawText = '';
         msg.message.map(part=>{ rawText += part.type=='text' ? part.data.text : ''; });
         if (this._antiSpam.peek(`${msg.group_id}: ${rawText}`)) return;
