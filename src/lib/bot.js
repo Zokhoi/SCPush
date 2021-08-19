@@ -184,6 +184,50 @@ class Crom {
           reply.push(ans)
         }
       }
+  }   else if (/\&\#.+\-.+\&/gi.test(msg)) {
+      let query = [...msg.matchAll(/\&\#(\[?(?<site>[a-zA-Z]{2,3})\]?)?(?<rankl>[0-9]+)\-(?<rankr>[0-9]+)\&/gi)];
+      for (var i = 0; i < query.length; i++) {
+        let {rankl, rankr, site} = query[i].groups;
+        site = site ? site.toLowerCase() : undefined;
+        let filter = {
+          anyBaseUrl: !!site&&!!branch[site] ? branch[site] : branch[config.scpSite],
+          baseUrl: !!site&&!!branch[site] ? branch[site] : branch[config.scpSite]
+        }
+        if (site&&site==="all") { filter.anyBaseUrl=null; filter.baseUrl=null; };
+        if ( rankr-rankl < 16 ){
+          for ( var rank = rankl; rank <= rankr; rank++){
+            let res = await this._crom.usersByRank(rank, filter);
+            res = res.data.usersByRank;
+            if (res.length) {
+              let ans = res[0].name;
+              ans += `: ${!!site&&(site==="all"||!!branch[site]) ? site.toUpperCase() : config.scpSite.toUpperCase()} #${res[0].statistics.rank}`;
+              ans += `\n共 ${res[0].statistics.pageCount} 頁面，總評分 ${res[0].statistics.totalRating}，平均分 ${res[0].statistics.meanRating}`;
+              ans += res[0].authorInfos.length ? `\n作者頁：${res[0].authorInfos[0].authorPage.url}` : "";
+              reply.push(ans);
+            }
+          }
+        }
+      }
+    } else if (/\&\#.+\&/gi.test(msg)) {
+      let query = [...msg.matchAll(/\&\#(\[?(?<site>[a-zA-Z]{2,3})\]?)?(?<rank>[0-9]+)\&/gi)];
+      for (var i = 0; i < query.length; i++) {
+        let {rank, site} = query[i].groups;
+        site = site ? site.toLowerCase() : undefined;
+        let filter = {
+          anyBaseUrl: !!site&&!!branch[site] ? branch[site] : branch[config.scpSite],
+          baseUrl: !!site&&!!branch[site] ? branch[site] : branch[config.scpSite]
+        }
+        if (site&&site==="all") { filter.anyBaseUrl=null; filter.baseUrl=null; };
+        let res = await this._crom.usersByRank(rank, filter);
+        res = res.data.usersByRank;
+        if (res.length) {
+          let ans = res[0].name;
+          ans += `: ${!!site&&(site==="all"||!!branch[site]) ? site.toUpperCase() : config.scpSite.toUpperCase()} #${res[0].statistics.rank}`;
+          ans += `\n共 ${res[0].statistics.pageCount} 頁面，總評分 ${res[0].statistics.totalRating}，平均分 ${res[0].statistics.meanRating}`;
+          ans += res[0].authorInfos.length ? `\n作者頁：${res[0].authorInfos[0].authorPage.url}` : "";
+          reply.push(ans);
+        }
+      }
     } else if (/\&.+\&/gi.test(msg)) {
       let query = [...msg.matchAll(/\&(\[(?<site>[a-zA-Z]{2,3})\])?(?<queri>.+)\&/gi)];
       for (var i = 0; i < query.length; i++) {
