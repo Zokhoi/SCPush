@@ -208,8 +208,8 @@ class Crom {
           let ans = res[0].name;
           ans += `: ${!!site&&(site==="all"||!!branch[site]) ? site.toUpperCase() : config.scpSite.toUpperCase()} #${res[0].statistics.rank}`;
           ans += `\n共 ${res[0].statistics.pageCount} 頁面，總評分 ${res[0].statistics.totalRating}，平均分 ${res[0].statistics.meanRating}`;
-          ans += res[0].authorInfos.length ? `\n作者頁：${res[0].authorInfos[0].authorPage.url}` : "";
           reply.push(ans);
+          if (res[0].authorInfos.length) reply.push(`作者頁：${res[0].authorInfos[0].authorPage.url}`)
         }
       }
     } else return false;
@@ -230,10 +230,15 @@ class Crom {
             let id = `${msg.sender.user_id}: ${reply.join("\n\n")}`;
             if (this._antiSpam.peek(id)) {
               this._antiSpam.set(id, 1);
-              await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+              for (let i = 0; i < reply.length; i++) {
+                await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply[i]);
+              }
             }
           } else {
-            await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
+            for (let i = 0; i < reply.length; i++) {
+              await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply[i]);
+            }
+            // await this.qq._client.sendPrivateMsg(msg.sender.user_id, reply.join("\n\n"));
           }
         } else {
           await this.qq._client.sendPrivateMsg(msg.sender.user_id, "無結果。");
