@@ -186,8 +186,8 @@ class Crom {
           ans += res[0].alternateTitles.length ? res[0].alternateTitles[0].title : '';
           ans += !ans && res[0].translationOf && res[0].translationOf.wikidotInfo ? res[0].translationOf.wikidotInfo.title : '';
           ans += res[0].wikidotInfo ? `\n評分：${res[0].wikidotInfo.rating}` : '' ;
-          ans += `\n${res[0].url}`
-          reply.push(ans)
+          reply.push(ans);
+          reply.push(`網址：${res[0].url}`);
         }
       }
     } else if (/\&.+\&/gi.test(msg)) {
